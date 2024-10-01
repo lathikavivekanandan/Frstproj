@@ -1,0 +1,71 @@
+1. What is CloudAuth?
+
+CloudAuth is an OAuth 2.0 implementation for authorizing requests between Amazon services. CloudAuth utilizes relationship data from AAA to grant clients authorization to access Amazon services. CloudAuth should be used to secure calls between all clients and services within the Amazon service graph
+
+CloudAuth can be used to authorize calls to a CloudAuth enabled server from clients within the same network fabric and across network fabrics. CloudAuth supports clients and services in all Amazon network fabrics (native, PROD, CORP, and combinations).
+2. Why CloudAuth?
+
+Native AWS offers a wide array of features ranging from building an managing infrastructure to latency optimizations in a growing number of geographical AWS regions. PROD environments (Coral services), however, have access to a limited number of these features and only in the 6 of 19 AWS regions.
+
+Nebula program's (MAWS) vision is for all Amazon engineering teams to host their applications in Native AWS so that they benefit from the various AWS features offered. The biggest blocker for this vision is the availability of existing PROD dependencies from applications running in native AWS (‘Native Accessibility’).
+
+One major reason PROD dependencies are not available via native AWS is that PROD environments have used AAA protocol to secure API calls that is incompatible with the newer OAuth standards based native authentication mechanism, called CloudAuth. Migrating the existing PROD environments to use CloudAuth will make them accessible via native AWS and hence encourage new applications to be developed on AWS platform.
+
+
+https://www.openlearning.com/progress/?course=akkodisacademy/courses/10kwomen&student=lathikavivekanandan
+
+
+
+am trying to retrieve all the IDs using the /discover/queries/accounts/v1 endpoint. Due to API call restrictions, I am attempting to filter based on the last seen timestamp. My plan is to first get 10,000 records, then obtain the last seen timestamp of the 10,000th record to use it for filtering the next set of records.
+However, when I run my code, I only receive the IDs of the 10,000 records without the corresponding last seen timestamps. How can I retrieve the last seen timestamp to proceed further?
+Below is my code:
+$baseUri = "https://api.crowdstrike.com/discover/queries/accounts/v1"
+$headers = @{
+"Authorization" = "Bearer $accessToken"
+}
+$allHostIds = @()
+$offset = 0
+$limit = 100
+$moreData = $true
+Function to fetch host IDs with given offset, limit, and optional last_seen filter
+function Fetch-HostIds {
+param (
+[int]$offset,
+[int]$limit,
+[string]$lastSeenTimestamp
+)
+$uri = $baseuri + '?offset=' + $offset + '&limit=' + $limit
+if ($lastSeenTimestamp) {
+$uri += '&filter=last_seen_timestamp:>="' + $lastSeenTimestamp + '"'
+}
+$uri += '&sort=last_seen_timestamp.asc'
+$response = Invoke-RestMethod -Uri $uri -Method Get -Headers $headers -ErrorAction stop
+return $response
+}
+Get the total number of hosts from the initial request
+$response = Fetch-HostIds -offset 0 -limit 1 -lastSeenTimestamp ""
+$totalHosts = $response.meta.pagination.total
+Loop through the paginated results to get host IDs
+while ($allHostIds.Count -lt $totalHosts) {
+Fetch host IDs with the current offset
+$response = Fetch-HostIds -offset $offset -limit $limit -lastSeenTimestamp $lastSeenTimestamp
+$hostIds = $response.resources
+$allHostIds += $hostIds
+Check if the number of hosts fetched is less than the total hosts
+if ($response.resources.Count -eq 0) {
+break
+}
+Increment the offset by the limit
+$offset += $limit
+If offset reaches 9900, reset it and use the last_seen_timestamp filter
+if ($offset -ge 9900) {
+$lastSeenTimestamp = $hostIds[-1].last_seen_timestamp # This is empty since it doesn't have last_seen_timestamp
+$offset = 0
+}
+}
+
+
+
+ 
+
+
